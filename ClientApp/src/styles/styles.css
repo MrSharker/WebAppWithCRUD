@@ -1,0 +1,85 @@
+.client-form {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    margin-bottom: 20px;
+}
+
+.client-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.client-form input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.client-form button {
+    background-color: #4caf50;
+    color: white;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+}
+
+.client-form button:hover {
+    background-color: #45a049;
+}
+
+.client-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.client-table th,
+.client-table td {
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+
+.client-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.client-table td {
+    text-align: center;
+}
+
+.client-table th:nth-child(7),
+.client-table td:nth-child(7) {
+    text-align: center;
+}
+
+.client-table td:nth-child(7) button {
+margin-right: 5px;
+background-color: #337ab7;
+color: white;
+padding: 5px 10px;
+border: none;
+cursor: pointer;
+}
+
+.client-table td:nth-child(7) button:hover {
+background-color: #286090;
+}
+
+.client-table td:nth-child(7) button:last-child {
+background-color: #d9534f;
+}
+
+.client-table td:nth-child(7) button:last-child:hover {
+background-color: #c9302c;
+}
+
+.error-container {
+    margin-bottom: 10px;
+}
+
+.error-message {
+    color: red;
+}
