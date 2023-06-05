@@ -1,5 +1,4 @@
 ﻿using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Data;
 using WebAppWithCRUD.Models;
 using WebAppWithCRUD.Repositories.Interfaces;
@@ -9,30 +8,22 @@ namespace WebAppWithCRUD.Repositories
     /// <summary>
     /// Repository that handles database access to the <see cref="Client" /> model.
     /// </summary>
-    public class ClientRepository : BaseRepository, IClientRepository
+    public class ClientRepository : IClientRepository
     {
         private readonly ILogger<ClientRepository> _logger;
+
+        private readonly string _connectionString;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ClientRepository" /> class.
         /// </summary>
-        /// <param name="context">The database context.</param>
+        /// <param name="configuration">The configuration.</param>
         /// <param name="logger">The repository logger.</param>
-        public ClientRepository( IProjectDbContext context,
-            ILogger<ClientRepository> logger) : base(context)
+        public ClientRepository( IConfiguration configuration,
+            ILogger<ClientRepository> logger)
         {
             _logger = logger;
-        }
-
-        /// <summary>
-        /// Delete the client.
-        /// </summary>
-        /// <param name="client">client model</param>
-        /// <returns>Void.</returns>
-        public async Task DeleteAsync(Client client)
-        {
-            this.Context.Clients.Remove(client);
-            await this.Context.SaveChangesAsync(default);
+            _connectionString = configuration.GetConnectionString("SqlConnection");
         }
 
         /// <summary>
@@ -41,17 +32,25 @@ namespace WebAppWithCRUD.Repositories
         /// <returns>The list of clients.</returns>
         public async Task<IReadOnlyList<Client>> GetAllAsync()
         {
-            return await this.Context.Clients.ToListAsync();
-        }
+            List<Client> clients = new List<Client>();
 
-        /// <summary>
-        /// Gets client by the email.
-        /// </summary>
-        /// <param name="email">client email</param>
-        /// <returns>Client.</returns>
-        public async Task<Client> GetByEmailAsync(string email)
-        {
-            return await this.Context.Clients.Where(c => c.Email == email).FirstOrDefaultAsync();
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                using (SqlCommand command = new SqlCommand("SELECT * FROM Clients", connection))
+                {
+                    using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            clients.Add(MapToClient(reader));
+                        }
+                    }
+                }
+            }
+
+            return clients;
         }
 
         /// <summary>
@@ -61,90 +60,45 @@ namespace WebAppWithCRUD.Repositories
         /// <returns>Client.</returns>
         public async Task<Client> GetByIdAsync(int id)
         {
-            return await this.Context.Clients.Where(c => c.Id == id).FirstOrDefaultAsync();
-        }
-
-        /// <summary>
-        /// Insert new client.
-        /// </summary>
-        /// <param name="client">client model</param>
-        /// <returns>int.</returns>
-        public async Task<int> InsertAsync(Client client)
-        {
-            await this.Context.Clients.AddAsync(client);
-            await this.Context.SaveChangesAsync(default);
-
-            return client.Id;
-        }
-        /// <summary>
-        /// Check if email already exists in db.
-        /// </summary>
-        /// <param name="email">client email</param>
-        /// <returns>bool.</returns>
-        public async Task<bool> IsEmailExistAsync(string email)
-        {
-            return await this.Context.Clients.AnyAsync(c => c.Email == email);
-        }
-
-        /// <summary>
-        /// Check if record with pair of email and phone number already exists in db.
-        /// </summary>
-        /// <param name="email">client email</param>
-        /// <param name="phoneNumber">client phone number</param>
-        /// <returns>bool.</returns>
-        public async Task<bool> IsEmailAndPhoneExistAsync(string email, string phoneNumber)
-        {
-            return await this.Context.Clients.AnyAsync(c => c.Email == email && c.PhoneNumber == phoneNumber);
-        }
-
-        /// <summary>
-        /// Check if record with phone number already exists in db.
-        /// </summary>
-        /// <param name="phoneNumber">client phone number</param>
-        /// <returns>bool.</returns>
-        public async Task<bool> IsPhoneExistAsync(string phoneNumber)
-        {
-            return await this.Context.Clients.AnyAsync(c => c.PhoneNumber == phoneNumber);
-        }
-
-        /// <summary>
-        /// Update the client.
-        /// </summary>
-        /// <param name="client">client model</param>
-        /// <returns>Void.</returns>
-        public async Task UpdateAsync(Client client)
-        {
-            this.Context.Clients.Update(client);
-            await this.Context.SaveChangesAsync(default);
-        }
-
-        /// <summary>
-        /// Get sms status by the phone number.
-        /// </summary>
-        /// <param name="phoneNumber">client phone number</param>
-        /// <returns>int.</returns>
-        public async Task<int> CheckSmsStatus(string phoneNumber)
-        {
-            return (await this.Context.Clients
-                .Where(c => c.PhoneNumber == phoneNumber).FirstAsync()).SmsStatus;
-        }
-
-        /// <summary>
-        /// Update the sms status for the all records with phone number.
-        /// </summary>
-        /// <param name="phoneNumber">client phone number</param>
-        /// <param name="status">client sms status</param>
-        /// <returns>Void.</returns>
-        public async Task UpdateSmsStatusAsync(string phoneNumber, int status)
-        {
-            var clients = await this.Context.Clients.Where(c => c.PhoneNumber == phoneNumber).ToListAsync();
-
-            foreach (var client in clients)
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                client.SmsStatus = status;
-            }
+                await connection.OpenAsync();
 
-            this.Context.Clients.UpdateRange(clients);
+                using (SqlCommand command = new SqlCommand("SELECT * FROM Clients WHERE Id = @Id", connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+
+                    using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            return MapToClient(reader);
+                        }
+
+                        return null;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Delete the client.
+        /// </summary>
+        /// <param name="client">client model</param>
+        /// <returns>Void.</returns>
+        public async Task DeleteAsync(int id)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                using (SqlCommand command = new SqlCommand("DELETE FROM Clients WHERE Id = @Id", connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
+
+                    // Execute the DELETE query asynchronously
+                    await command.ExecuteNonQueryAsync();
+                }
+            }
         }
 
         /// <summary>
@@ -154,28 +108,52 @@ namespace WebAppWithCRUD.Repositories
         /// <returns>(int id,string error).</returns>
         public async Task<(int id, string error)> InsertBySPAsync(Client client)
         {
-            var clientIdParam = new SqlParameter("@ClientId", SqlDbType.Int)
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                Direction = ParameterDirection.Output
-            };
+                await connection.OpenAsync();
 
-            var errorMessageParam = new SqlParameter("@ErrorMessage", SqlDbType.NVarChar, 200)
+                using (SqlCommand command = new SqlCommand("InsertClient", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@Name", client.Name);
+                    command.Parameters.AddWithValue("@Email", client.Email);
+                    command.Parameters.AddWithValue("@PhoneExtension", client.PhoneExtension);
+                    command.Parameters.AddWithValue("@PhoneNumber", client.PhoneNumber);
+                    SqlParameter clientIdParam = new SqlParameter("@ClientId", SqlDbType.Int)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    command.Parameters.Add(clientIdParam);
+                    SqlParameter errorMessageParam = new SqlParameter("@ErrorMessage", SqlDbType.NVarChar, 200)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    command.Parameters.Add(errorMessageParam);
+                    await command.ExecuteNonQueryAsync();
+
+                    return ((int)clientIdParam.Value, (string)errorMessageParam.Value);
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Check if client exists by id.
+        /// </summary>
+        /// <param name="id">client id</param>
+        /// <returns>bool.</returns>
+        public async Task<bool> IsClientExists(int id)
+        {
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                Direction = ParameterDirection.Output
-            };
+                using (SqlCommand command = new SqlCommand("SELECT COUNT(*) FROM Clients WHERE Id = @Id", connection))
+                {
+                    command.Parameters.AddWithValue("@Id", id);
 
-            var sql = "EXEC InsertClient @Name, @Email, @PhoneExtension, @PhoneNumber, @ClientId OUT, @ErrorMessage OUT";
-
-            await this.Context.Database.ExecuteSqlRawAsync(
-                sql,
-                new SqlParameter("@Name", client.Name),
-                new SqlParameter("@Email", client.Email),
-                new SqlParameter("@PhoneExtension", client.PhoneExtension),
-                new SqlParameter("@PhoneNumber", client.PhoneNumber),
-                clientIdParam,
-                errorMessageParam);
-
-            return ((int)clientIdParam.Value, (string)errorMessageParam.Value);
+                    int count = (int)await command.ExecuteScalarAsync();
+                    return count > 0;
+                }
+            }
         }
 
         /// <summary>
@@ -185,26 +163,51 @@ namespace WebAppWithCRUD.Repositories
         /// <returns>string.</returns>
         public async Task<string> UpdateBySPAsync(Client client)
         {
-            var errorMessageParam = new SqlParameter("@ErrorMessage", SqlDbType.NVarChar, 200)
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
-                Direction = ParameterDirection.Output
+                await connection.OpenAsync();
+
+                using (SqlCommand command = new SqlCommand("UpdateClient", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@Id", client.Id);
+                    command.Parameters.AddWithValue("@Name", client.Name);
+                    command.Parameters.AddWithValue("@Email", client.Email);
+                    command.Parameters.AddWithValue("@PhoneExtension", client.PhoneExtension);
+                    command.Parameters.AddWithValue("@PhoneNumber", client.PhoneNumber);
+                    command.Parameters.AddWithValue("@EmailStatus", client.EmailStatus);
+                    command.Parameters.AddWithValue("@SmsStatus", client.SmsStatus);
+                    SqlParameter errorMessageParam = new SqlParameter("@ErrorMessage", SqlDbType.NVarChar, 200)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    command.Parameters.Add(errorMessageParam);
+                    await command.ExecuteNonQueryAsync();
+
+                    return (string)errorMessageParam.Value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Map data to client.
+        /// </summary>
+        /// <param name="reader">Sql data reader</param>
+        /// <returns>Client.</returns>
+        private Client MapToClient(SqlDataReader reader)
+        {
+            return new Client
+            {
+                Id = (int)reader["Id"],
+                Name = (string)reader["Name"],
+                Email = (string)reader["Email"],
+                PhoneExtension = (string)reader["PhoneExtension"],
+                PhoneNumber = (string)reader["PhoneNumber"],
+                EmailStatus = (int)reader["EmailStatus"],
+                SmsStatus = (int)reader["SmsStatus"],
+                CreateDate = (DateTime)reader["CreateDate"],
+                UpdateDate = (DateTime)reader["UpdateDate"],
             };
-
-            var sql = "EXEC UpdateClient " +
-                "@Id, @Name, @Email, @PhoneExtension, @PhoneNumber, @EmailStatus, @SmsStatus, @ErrorMessage OUT";
-
-            await this.Context.Database.ExecuteSqlRawAsync(
-                sql,
-                new SqlParameter("@Id", client.Id),
-                new SqlParameter("@Name", client.Name),
-                new SqlParameter("@Email", client.Email),
-                new SqlParameter("@PhoneExtension", client.PhoneExtension),
-                new SqlParameter("@PhoneNumber", client.PhoneNumber),
-                new SqlParameter("@EmailStatus", client.EmailStatus),
-                new SqlParameter("@SmsStatus", client.SmsStatus),
-                errorMessageParam);
-
-            return (string)errorMessageParam.Value;
         }
     }
 }

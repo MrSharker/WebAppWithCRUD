@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using System.Runtime.CompilerServices;
 using WebAppWithCRUD.Repositories;
-using WebAppWithCRUD.Repositories.Contexts;
 using WebAppWithCRUD.Repositories.Interfaces;
 using WebAppWithCRUD.Services;
 using WebAppWithCRUD.Services.Interfaces;
@@ -11,14 +9,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllersWithViews();
-
-builder.Services.AddDbContext<ProjectDbContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlConnection"));
-});
-
-builder.Services.AddScoped<IProjectDbContext>(provider =>
-    provider.GetService<ProjectDbContext>());
 
 builder.Services.AddScoped<IClientRepository,ClientRepository>();
 builder.Services.AddScoped<IClientService, ClientService>();
@@ -43,25 +33,4 @@ app.MapControllerRoute(
 
 app.MapFallbackToFile("index.html");
 
-using ( var scope = app.Services.CreateScope())
-{
-    var serviceProvider = scope.ServiceProvider;
-    try
-    {
-        var context = serviceProvider.GetRequiredService<ProjectDbContext>();
-        Initialize(context);
-    }
-    catch (Exception exception)
-    {
-        var logger = serviceProvider.GetRequiredService<ILogger>();
-        logger.LogError(exception, "An error occurred while app initialization");
-    }
-}
-
 app.Run();
-
-
-static void Initialize(ProjectDbContext context)
-{
-    context.Database.EnsureCreated();
-}

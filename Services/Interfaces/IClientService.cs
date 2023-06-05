@@ -37,8 +37,6 @@ namespace WebAppWithCRUD.Services.Interfaces
         /// The ServiceResponse with the client id if the request
         /// was succesfull or with the corresponding error otherwise.
         /// </returns>
-        Task<ServiceResponse<int>> InsertAsync(InsertClientRequest request);
-
         Task<ServiceResponse<int>> InsertBySPAsync(InsertClientRequest request);
 
         /// <summary>
@@ -49,8 +47,6 @@ namespace WebAppWithCRUD.Services.Interfaces
         /// The ServiceResponse with the bool if the request
         /// was succesfull or with the corresponding error otherwise.
         /// </returns>
-        Task<ServiceResponse<bool>> UpdateAsync(int id, UpdateClientRequest request);
-
         Task<ServiceResponse<bool>> UpdateBySPAsync(int id, UpdateClientRequest request);
 
         /// <summary>

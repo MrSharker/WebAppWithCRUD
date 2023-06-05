@@ -33,8 +33,7 @@ namespace WebAppWithCRUD.Services
         {
             try
             {
-                var client = await _repository.GetByIdAsync(id);
-                if (client == null)
+                if (!await _repository.IsClientExists(id))
                 {
                     var error = new ValidationError()
                     {
@@ -44,7 +43,7 @@ namespace WebAppWithCRUD.Services
                     return new ServiceResponse<bool>(new List<ValidationError>() { error });
                 }
 
-                await _repository.DeleteAsync(client);
+                await _repository.DeleteAsync(id);
 
                 return new ServiceResponse<bool>(true);
             }
@@ -154,141 +153,6 @@ namespace WebAppWithCRUD.Services
         /// The ServiceResponse with the client id if the request
         /// was succesfull or with the corresponding error otherwise.
         /// </returns>
-        public async Task<ServiceResponse<int>> InsertAsync(InsertClientRequest request)
-        {
-            try
-            {
-                var errorsList = new List<ValidationError>();
-                var phone = DividePhoneNumber(request.Cellphone);
-
-                var model = new Client()
-                {
-                    Email = request.Email,
-                    Name = request.Name,
-                    PhoneExtension = phone.ext,
-                    PhoneNumber = phone.number,
-                };
-
-                if (await _repository.IsEmailExistAsync(model.Email))
-                {
-                    errorsList.Add(new ValidationError()
-                    {
-                        FieldName = nameof(request.Email),
-                        ErrorDetail = "Client already exists with this email",
-                    });
-                }
-
-                if (await _repository.IsEmailAndPhoneExistAsync(model.Email, model.PhoneNumber))
-                {
-                    errorsList.Add(new ValidationError()
-                    {
-                        FieldName = nameof(request.Email),
-                        ErrorDetail = "Client already exists with this pair of email and phone number",
-                    });
-                }
-                if (errorsList.Count > 0)
-                {
-                    return new ServiceResponse<int>(errorsList);
-                }
-
-                if (await _repository.IsPhoneExistAsync(model.PhoneNumber))
-                {
-                    model.SmsStatus = await _repository.CheckSmsStatus(model.PhoneNumber);
-                }
-
-                var id = await _repository.InsertAsync(model);
-
-                return new ServiceResponse<int>(id);
-            }
-            catch (Exception ex)
-            {
-                var location = "ClientService.InsertAsync";
-                this._logger.LogError(ex, $"{location}: {ex.Message}");
-                var error = new InternalError { Location = location, Message = ex.Message };
-                return new ServiceResponse<int>(error);
-            }
-        }
-
-        /// <summary>
-        /// Update the client.
-        /// </summary>
-        /// <param name="request">UpdateClientRequest.</param>
-        /// <returns>
-        /// The ServiceResponse with the bool if the request
-        /// was succesfull or with the corresponding error otherwise.
-        /// </returns>
-        public async Task<ServiceResponse<bool>> UpdateAsync(int id, UpdateClientRequest request)
-        {
-            try
-            {
-                var errorsList = new List<ValidationError>();
-                var client = await _repository.GetByIdAsync(id);
-                if (client == null)
-                {
-                    errorsList.Add(new ValidationError()
-                    {
-                        FieldName = nameof(id),
-                        ErrorDetail = "Client not found",
-                    });
-
-                    return new ServiceResponse<bool>(errorsList);
-                }
-
-                var phone = DividePhoneNumber(request.Cellphone);
-
-                if (client.Email !=  request.Email)
-                {
-                    if (await _repository.IsEmailExistAsync(request.Email))
-                    {
-                        errorsList.Add(new ValidationError()
-                        {
-                            FieldName = nameof(request.Email),
-                            ErrorDetail = "Client already exists with this email",
-                        });
-
-                        if (await _repository.IsEmailAndPhoneExistAsync(request.Email, phone.number))
-                        {
-                            errorsList.Add(new ValidationError()
-                            {
-                                FieldName = nameof(request.Email),
-                                ErrorDetail = "Client already exists with this pair of email and phone number",
-                            });
-                        }
-                    }
-                }
-
-                if (errorsList.Count > 0)
-                {
-                    return new ServiceResponse<bool>(errorsList);
-                }
-
-                client.UpdateDate = DateTime.Now;
-                client.Name = request.Name;
-                client.Email = request.Email;
-                client.PhoneExtension = phone.ext;
-                client.PhoneNumber = phone.number;
-                client.EmailStatus = request.EmailStatus;
-
-                if (client.SmsStatus != request.SmsStatus)
-                {
-                    client.SmsStatus = request.SmsStatus;
-                    await _repository.UpdateSmsStatusAsync(phone.number, request.SmsStatus);
-                }
-
-                await _repository.UpdateAsync(client);
-
-                return new ServiceResponse<bool>(true);
-            }
-            catch (Exception ex)
-            {
-                var location = "ClientService.UpdateAsync";
-                this._logger.LogError(ex, $"{location}: {ex.Message}");
-                var error = new InternalError { Location = location, Message = ex.Message };
-                return new ServiceResponse<bool>(error);
-            }
-            throw new NotImplementedException();
-        }
-
         public async Task<ServiceResponse<int>> InsertBySPAsync(InsertClientRequest request)
         {
             try
