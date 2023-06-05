@@ -17,6 +17,7 @@ namespace WebAppWithCRUD.Models
         /// gets or sets the Name of the client.
         /// </summary>
         /// <value>string.</value>
+        [MaxLength(100)]
         public string Name { get; set; }
 
         /// <summary>
@@ -24,6 +25,7 @@ namespace WebAppWithCRUD.Models
         /// </summary>
         /// <value>string.</value>
         [Required]
+        [MaxLength(250)]
         public string Email { get; set; }
 
         /// <summary>

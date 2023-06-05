@@ -14,7 +14,7 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<ProjectDbContext>(options =>
 {
-    options.UseSqlite("Data Source=Project.db");
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SqlConnection"));
 });
 
 builder.Services.AddScoped<IProjectDbContext>(provider =>

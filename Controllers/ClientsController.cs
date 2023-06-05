@@ -104,7 +104,7 @@ namespace WebAppWithCRUD.Controllers
         {
             try
             {
-                var response = await this._service.InsertAsync(request);
+                var response = await this._service.InsertBySPAsync(request);
 
                 if (!response.IsSuccessful)
                 {
@@ -170,7 +170,7 @@ namespace WebAppWithCRUD.Controllers
         {
             try
             {
-                var response = await this._service.UpdateAsync(id, request);
+                var response = await this._service.UpdateBySPAsync(id, request);
 
                 if (!response.IsSuccessful)
                 {

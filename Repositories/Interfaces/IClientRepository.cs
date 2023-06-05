@@ -84,5 +84,19 @@ namespace WebAppWithCRUD.Repositories.Interfaces
         /// <param name="status">client sms status</param>
         /// <returns>Void.</returns>
         Task UpdateSmsStatusAsync(string phoneNumber, int status);
+
+        /// <summary>
+        /// Insert new client.
+        /// </summary>
+        /// <param name="client">client model</param>
+        /// <returns>(int id,string error).</returns>
+        Task<(int id,string error)> InsertBySPAsync(Client client);
+
+        /// <summary>
+        /// Update the client.
+        /// </summary>
+        /// <param name="client">client model</param>
+        /// <returns>string.</returns>
+        Task<string> UpdateBySPAsync(Client client);
     }
 }

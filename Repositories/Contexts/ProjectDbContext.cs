@@ -1,4 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 using WebAppWithCRUD.Models;
 using WebAppWithCRUD.Repositories.Interfaces;
 

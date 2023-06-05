@@ -289,6 +289,105 @@ namespace WebAppWithCRUD.Services
             throw new NotImplementedException();
         }
 
+        public async Task<ServiceResponse<int>> InsertBySPAsync(InsertClientRequest request)
+        {
+            try
+            {
+                var errorsList = new List<ValidationError>();
+                var phone = DividePhoneNumber(request.Cellphone);
+
+                var model = new Client()
+                {
+                    Email = request.Email,
+                    Name = request.Name,
+                    PhoneExtension = phone.ext,
+                    PhoneNumber = phone.number,
+                };
+
+                var result = await _repository.InsertBySPAsync(model);
+
+                if (result.error.Length > 0)
+                {
+                    errorsList.Add(new ValidationError()
+                    {
+                        ErrorDetail = result.error,
+                    });
+                }
+
+                if (errorsList.Count > 0)
+                {
+                    return new ServiceResponse<int>(errorsList);
+                }
+
+                return new ServiceResponse<int>(result.id);
+            }
+            catch (Exception ex)
+            {
+                var location = "ClientService.InsertAsync";
+                this._logger.LogError(ex, $"{location}: {ex.Message}");
+                var error = new InternalError { Location = location, Message = ex.Message };
+                return new ServiceResponse<int>(error);
+            }
+        }
+
+        /// <summary>
+        /// Update the client.
+        /// </summary>
+        /// <param name="request">UpdateClientRequest.</param>
+        /// <returns>
+        /// The ServiceResponse with the bool if the request
+        /// was succesfull or with the corresponding error otherwise.
+        /// </returns>
+        public async Task<ServiceResponse<bool>> UpdateBySPAsync(int id, UpdateClientRequest request)
+        {
+            try
+            {
+                var errorsList = new List<ValidationError>();
+                var client = await _repository.GetByIdAsync(id);
+                if (client == null)
+                {
+                    errorsList.Add(new ValidationError()
+                    {
+                        FieldName = nameof(id),
+                        ErrorDetail = "Client not found",
+                    });
+
+                    return new ServiceResponse<bool>(errorsList);
+                }
+
+                var phone = DividePhoneNumber(request.Cellphone);
+
+                client.Name = request.Name;
+                client.Email = request.Email;
+                client.PhoneExtension = phone.ext;
+                client.PhoneNumber = phone.number;
+                client.EmailStatus = request.EmailStatus;
+                client.SmsStatus = request.SmsStatus;
+
+                var result = await _repository.UpdateBySPAsync(client);
+                if (string.IsNullOrEmpty(result))
+                    return new ServiceResponse<bool>(true);
+                else
+                {
+                    errorsList.Add(new ValidationError()
+                    {
+                        ErrorDetail = result,
+                    });
+
+                    return new ServiceResponse<bool>(errorsList);
+                }
+            }
+            catch (Exception ex)
+            {
+                var location = "ClientService.UpdateBySPAsync";
+                this._logger.LogError(ex, $"{location}: {ex.Message}");
+                var error = new InternalError { Location = location, Message = ex.Message };
+                return new ServiceResponse<bool>(error);
+            }
+            throw new NotImplementedException();
+        }
+
+
         /// <summary>
         /// Divide the phone number on extension and number.
         /// </summary>

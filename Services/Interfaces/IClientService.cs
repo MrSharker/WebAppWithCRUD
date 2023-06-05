@@ -39,6 +39,8 @@ namespace WebAppWithCRUD.Services.Interfaces
         /// </returns>
         Task<ServiceResponse<int>> InsertAsync(InsertClientRequest request);
 
+        Task<ServiceResponse<int>> InsertBySPAsync(InsertClientRequest request);
+
         /// <summary>
         /// Update the client.
         /// </summary>
@@ -48,6 +50,8 @@ namespace WebAppWithCRUD.Services.Interfaces
         /// was succesfull or with the corresponding error otherwise.
         /// </returns>
         Task<ServiceResponse<bool>> UpdateAsync(int id, UpdateClientRequest request);
+
+        Task<ServiceResponse<bool>> UpdateBySPAsync(int id, UpdateClientRequest request);
 
         /// <summary>
         /// Delete the client by id.

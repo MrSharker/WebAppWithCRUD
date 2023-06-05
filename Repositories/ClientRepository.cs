@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 using WebAppWithCRUD.Models;
 using WebAppWithCRUD.Repositories.Interfaces;
 
@@ -143,6 +145,66 @@ namespace WebAppWithCRUD.Repositories
             }
 
             this.Context.Clients.UpdateRange(clients);
+        }
+
+        /// <summary>
+        /// Insert new client.
+        /// </summary>
+        /// <param name="client">client model</param>
+        /// <returns>(int id,string error).</returns>
+        public async Task<(int id, string error)> InsertBySPAsync(Client client)
+        {
+            var clientIdParam = new SqlParameter("@ClientId", SqlDbType.Int)
+            {
+                Direction = ParameterDirection.Output
+            };
+
+            var errorMessageParam = new SqlParameter("@ErrorMessage", SqlDbType.NVarChar, 200)
+            {
+                Direction = ParameterDirection.Output
+            };
+
+            var sql = "EXEC InsertClient @Name, @Email, @PhoneExtension, @PhoneNumber, @ClientId OUT, @ErrorMessage OUT";
+
+            await this.Context.Database.ExecuteSqlRawAsync(
+                sql,
+                new SqlParameter("@Name", client.Name),
+                new SqlParameter("@Email", client.Email),
+                new SqlParameter("@PhoneExtension", client.PhoneExtension),
+                new SqlParameter("@PhoneNumber", client.PhoneNumber),
+                clientIdParam,
+                errorMessageParam);
+
+            return ((int)clientIdParam.Value, (string)errorMessageParam.Value);
+        }
+
+        /// <summary>
+        /// Update the client.
+        /// </summary>
+        /// <param name="client">client model</param>
+        /// <returns>string.</returns>
+        public async Task<string> UpdateBySPAsync(Client client)
+        {
+            var errorMessageParam = new SqlParameter("@ErrorMessage", SqlDbType.NVarChar, 200)
+            {
+                Direction = ParameterDirection.Output
+            };
+
+            var sql = "EXEC UpdateClient " +
+                "@Id, @Name, @Email, @PhoneExtension, @PhoneNumber, @EmailStatus, @SmsStatus, @ErrorMessage OUT";
+
+            await this.Context.Database.ExecuteSqlRawAsync(
+                sql,
+                new SqlParameter("@Id", client.Id),
+                new SqlParameter("@Name", client.Name),
+                new SqlParameter("@Email", client.Email),
+                new SqlParameter("@PhoneExtension", client.PhoneExtension),
+                new SqlParameter("@PhoneNumber", client.PhoneNumber),
+                new SqlParameter("@EmailStatus", client.EmailStatus),
+                new SqlParameter("@SmsStatus", client.SmsStatus),
+                errorMessageParam);
+
+            return (string)errorMessageParam.Value;
         }
     }
 }
